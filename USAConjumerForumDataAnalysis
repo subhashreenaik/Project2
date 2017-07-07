@@ -1,0 +1,70 @@
+REGISTER '/usr/local/pig/lib/piggybank.jar';
+
+DEFINE CSVLoader org.apache.piggybank.storage.CSVLoader();
+A = load 'Consumer_Complaints.csv' USING org.apache.pig.piggybank.storage.CSVExcelStorage(',','NO_MULTILINE','UNIX','SKIP_INPUT_HEADER') as ( Datereceived:chararray,Product:chararray,Subproduct:chararray,Issue:chararray,Subissue:chararray,Consumercomplaintnarrative:chararray,Companypublicresponse:chararray,Company:chararray,State:chararray,
+ZIPcode:int,Submittedvia:chararray,Datesenttocompany:chararray,Companyresponsetoconsumer:chararray,Timelyresponse:chararray,Consumerdisputed:chararray,ComplaintID:int);
+
+B = FOREACH A GENERATE $0,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15;
+
+1.
+D = FILTER B BY Timelyresponse == 'Yes';
+GroupD = group D ALL;
+COUNT = FOREACH GroupD GENERATE COUNT(D);
+2.
+G = FILTER B BY Datereceived == Datesenttocompany;
+GroupG = group G ALL;
+COUNT1 = FOREACH GroupG GENERATE COUNT(G);
+
+3. 
+GroupCompany = group B by Company;
+
+MaxComp = FOREACH GroupCompany GENERATE Company,SUM(B.$15);
+MaxComp = FOREACH GroupCompany GENERATE FLATTEN(group) as Company,COUNT($1);
+
+4.
+java program that convert dd/MM/yyyy to yyyy/MM/dd
+
+    import java.text.ParseException;
+    import java.text.SimpleDateFormat;
+    import java.util.Date;
+    import java.util.logging.Level;
+    import java.util.logging.Logger;
+     
+    /**
+     *
+     * @author aervits
+     */
+    public class NewClass1 {
+     public static void main(String [] args) {
+     
+         String formatStr = "MM/dd/yyyy";
+         SimpleDateFormat format = new SimpleDateFormat(formatStr);
+         
+         String dateStr = "01/05/2017";
+         
+         try {
+             Date formatted = format.parse(dateStr);
+             System.out.println("Date: " + formatted);
+             
+             String formatStr1 = "yyyy/MM/dd";
+             format = new SimpleDateFormat(formatStr1);
+             String format2 = format.format(formatted);
+             System.out.println("Date: " + format2);
+         } catch (ParseException ex) {
+             Logger.getLogger(NewClass.class.getName()).log(Level.SEVERE, ex.getMessage());
+         }
+     }   
+    }
+REGISTER 'udf.jar';
+E = foreach B generate ToDate($0, 'dd/MM/yyyy') as (dateobj:DateTime);
+getyeardata = foreach E generate ToString(dateobj, 'yyyy/MM/dd') as (dateStr2:chararray);
+F = FOREACH getyeardata GENERATE ToDate(dateStr2,'yyyy/MM/dd') as (year:DateTime),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15;
+getyeardata1 = FOREACH F GENERATE (year),GetYear(year),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15;
+Filterproduct = FILTER getyeardata1 BY Product == 'Debt collection' AND year ==ToDate('2015');
+Groupfilter = group Filterproduct ALL;
+Countfilter = FOREACH Groupfilter GENERATE COUNT(Filterproduct);
+
+
+
+
+
